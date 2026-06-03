@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שומרים על המנוע 💪 — מנחה</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&family=Secular+One&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --or:#FF6B00;--orl:#FF9A3C;
+  --pm:#9333EA;--pl:#C084FC;
+  --dark:#0F0A1A;--pan:#1A0F2E;--pan2:#231540;
+  --gold:#FFD700;--ok:#00CC6A;--err:#FF4444
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Heebo',sans-serif;background:var(--dark);color:#fff;direction:rtl;min-height:100vh;display:flex;flex-direction:column}
+h1,h2,h3{font-family:'Secular One',sans-serif}
+
+/* STATUS BAR */
+#status-bar{display:none;background:var(--pan);border-bottom:1px solid var(--pan2);padding:8px 16px;flex-shrink:0;width:100%}
+#status-bar.show{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#status-info{font-size:13px;color:#aaa;flex:1}
+#status-lead{font-size:13px;color:var(--gold);font-family:'Secular One'}
+.bar-btn{background:var(--pan2);border:1px solid #444;border-radius:8px;color:#fff;padding:6px 12px;font-size:12px;font-family:'Heebo';cursor:pointer}
+.bar-btn:hover{background:#333}
+#btn-back-board{display:none}
+
+/* SCREENS */
+#game-screens{flex:1;display:flex;flex-direction:column;width:100%}
+.screen{display:none;flex-direction:column;width:100%}
+.screen.active{display:flex;align-items:stretch}
+#lobby{align-items:center;justify-content:center;padding:30px 20px;gap:16px}
+#wheel-screen{padding:16px;gap:16px}
+#q-screen,#scores-screen,#end-screen{max-width:900px;margin-left:auto;margin-right:auto;width:100%;padding:20px}
+
+/* LOBBY */
+#lobby h1{font-size:2.2rem;color:var(--or);text-align:center}
+.subtitle{color:#aaa;font-size:14px}
+#qr-box{background:var(--pan);border-radius:16px;padding:20px;text-align:center;gap:10px;display:flex;flex-direction:column;align-items:center}
+#qr-code{background:#fff;padding:10px;border-radius:8px;display:inline-block}
+#player-url{color:var(--pl);font-size:13px;word-break:break-all}
+#players-list{width:100%;max-width:480px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:48px}
+.player-chip{background:var(--pan);border:1px solid var(--pan2);border-radius:20px;padding:6px 14px;font-size:14px}
+#player-count{color:#aaa;font-size:13px}
+#start-btn{background:linear-gradient(135deg,var(--or),var(--pm));color:#fff;border:none;border-radius:14px;padding:16px 48px;font-size:1.3rem;font-family:'Secular One';cursor:pointer;margin-top:8px}
+#start-btn:hover{opacity:.9}
+
+/* WHEEL SCREEN */
+#wheel-area{display:flex;gap:24px;align-items:flex-start;width:100%}
+#wheel-container{flex-shrink:0;position:relative;width:420px}
+canvas#wheel-canvas{width:420px;height:420px;cursor:pointer;display:block}
+#wheel-pointer{text-align:center;font-size:2rem;margin-top:-8px}
+#wheel-result{text-align:center;font-family:'Secular One';font-size:1.3rem;color:var(--gold);min-height:36px;margin-top:4px}
+#spin-btn{display:block;margin:8px auto 0;background:linear-gradient(135deg,var(--or),var(--pm));color:#fff;border:none;border-radius:12px;padding:12px 36px;font-size:1.1rem;font-family:'Secular One';cursor:pointer}
+#spin-btn:disabled{opacity:.5;cursor:default}
+
+/* BOARD */
+#board-container{flex:1;min-width:0}
+#board{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;align-self:start}
+.board-cat{background:var(--pm);border-radius:10px;padding:8px 4px;font-size:13px;font-weight:700;text-align:center;height:64px;display:flex;align-items:center;justify-content:center;line-height:1.3}
+.board-cell{background:var(--pan);border:2px solid var(--pan2);border-radius:10px;cursor:pointer;font-family:'Secular One';font-size:1.2rem;color:var(--gold);transition:all .15s;height:72px;display:flex;align-items:center;justify-content:center}
+.board-cell:hover:not(.used):not(.active){border-color:var(--gold);background:rgba(255,215,0,.1)}
+.board-cell.used{background:#111;color:#333;cursor:default;border-color:#222}
+.board-cell.active{border-color:var(--or);animation:pulse-border .6s infinite alternate}
+@keyframes pulse-border{from{border-color:var(--or)}to{border-color:var(--gold)}}
+
+/* Q SCREEN */
+#q-screen{gap:14px;flex-direction:column}
+.q-header{display:flex;align-items:center;gap:10px;width:100%}
+#q-cat{background:var(--pm);padding:4px 12px;border-radius:20px;font-size:13px;flex-shrink:0}
+#q-pts{font-family:'Secular One';color:var(--gold);font-size:1.2rem}
+#q-progress{color:#aaa;font-size:13px;margin-right:auto}
+#q-timer{font-family:'Secular One';font-size:2.5rem;color:var(--gold);min-width:56px;text-align:center}
+#q-timer.urgent{color:var(--err);animation:blink .5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#timer-bar{height:6px;background:var(--pan2);border-radius:3px;width:100%}
+#timer-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .9s linear}
+#q-text{font-size:1.4rem;font-weight:800;text-align:center;line-height:1.5;width:100%}
+#q-img{width:100%;max-height:360px;object-fit:contain;background:#111;border-radius:12px;display:none}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.opt-btn{background:var(--pan);border:2px solid var(--pan2);border-radius:12px;padding:16px 12px;text-align:center;cursor:pointer;font-size:1.05rem;font-family:'Heebo';color:#fff;transition:all .15s}
+.opt-btn:hover:not(:disabled){border-color:var(--pl)}
+.opt-btn.correct{background:rgba(0,204,106,.2);border-color:var(--ok);color:var(--ok)}
+.opt-btn.wrong{background:rgba(255,68,68,.15);border-color:var(--err)}
+.opt-votes{font-size:11px;color:#aaa;display:block;margin-top:4px}
+#answer-count{text-align:center;color:#aaa;font-size:14px}
+#reveal-btn{width:100%;background:linear-gradient(135deg,var(--ok),#00a854);color:#fff;border:none;border-radius:12px;padding:16px;font-size:1.2rem;font-family:'Secular One';cursor:pointer}
+#reveal-btn:disabled{opacity:.5;cursor:default}
+#expl-box{background:var(--pan);border-right:4px solid var(--ok);border-radius:10px;padding:12px 16px;font-size:14px;color:#ccc;line-height:1.7;display:none}
+#next-btn{width:100%;background:linear-gradient(135deg,var(--pm),var(--or));color:#fff;border:none;border-radius:12px;padding:16px;font-size:1.2rem;font-family:'Secular One';cursor:pointer;display:none}
+
+/* SCORES */
+#scores-screen{gap:12px;flex-direction:column}
+#scores-screen h2{color:var(--gold);text-align:center}
+#scores-list{display:flex;flex-direction:column;gap:8px;width:100%}
+.score-row{background:var(--pan);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.score-rank{font-family:'Secular One';font-size:1.4rem;color:var(--gold);min-width:36px}
+.score-name{flex:1;font-size:1.1rem}
+.score-pts{font-family:'Secular One';font-size:1.3rem;color:var(--gold)}
+#continue-btn{background:linear-gradient(135deg,var(--pm),var(--or));color:#fff;border:none;border-radius:12px;padding:14px;font-size:1.1rem;font-family:'Secular One';cursor:pointer;width:100%}
+
+/* END */
+#end-screen{align-items:center;justify-content:center;gap:16px;text-align:center;min-height:60vh;flex-direction:column}
+#end-screen h2{color:var(--gold);font-size:2rem}
+#winner-emoji{font-size:4rem}
+#winner-name{font-size:1.6rem;font-weight:700}
+#winner-score{font-family:'Secular One';font-size:3rem;color:var(--gold)}
+#end-podium{width:100%;max-width:480px;display:flex;flex-direction:column;gap:6px}
+#reset-btn{background:var(--pan2);color:#aaa;border:1px solid #444;border-radius:10px;padding:10px 24px;font-family:'Heebo';cursor:pointer;font-size:14px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div id="status-bar">
+  <div id="status-info"></div>
+  <div id="status-lead"></div>
+  <button class="bar-btn" id="btn-back-board" onclick="window.backToBoard()">📋 חזור ללוח</button>
+  <button class="bar-btn" onclick="window.showScores()">📊 ניקוד</button>
+  <button class="bar-btn" onclick="window.endEarly()">🏁 סיים פעילות</button>
+  <button class="bar-btn" style="color:var(--err)" onclick="window.resetGame()">🗑️</button>
+</div>
+
+<div id="game-screens">
+
+  <div id="lobby" class="screen active">
+    <h1>💪 שומרים על המנוע</h1>
+    <p class="subtitle">HB Consulting</p>
+    <div id="qr-box">
+      <div id="qr-code"></div>
+      <div id="player-url"></div>
+    </div>
+    <div id="player-count">0 שחקנים מחוברים</div>
+    <div id="players-list"></div>
+    <button id="start-btn" onclick="window.startGame()">▶ התחל משחק</button>
+  </div>
+
+  <div id="wheel-screen" class="screen">
+    <div id="wheel-area">
+      <div id="wheel-container">
+        <canvas id="wheel-canvas" width="420" height="420"></canvas>
+        <div id="wheel-pointer">▼</div>
+        <div id="wheel-result"></div>
+        <button id="spin-btn" onclick="window.spinWheel()">🎰 סובב גלגל</button>
+      </div>
+      <div id="board-container">
+        <div id="board"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="q-screen" class="screen">
+    <div class="q-header">
+      <span id="q-cat"></span>
+      <span id="q-pts"></span>
+      <span id="q-progress"></span>
+      <span id="q-timer">30</span>
+    </div>
+    <div id="timer-bar"><div id="timer-fill" style="width:100%"></div></div>
+    <div id="q-text"></div>
+    <img id="q-img" src="" alt="">
+    <div class="opts" id="opts"></div>
+    <div id="answer-count">0 שחקנים ענו</div>
+    <button id="reveal-btn" onclick="window.revealAnswer()">✅ חשוף תשובה</button>
+    <div id="expl-box"></div>
+    <button id="next-btn" onclick="window.nextQuestion()">← המשך למשחק</button>
+  </div>
+
+  <div id="scores-screen" class="screen">
+    <h2>📊 ניקוד ביניים</h2>
+    <div id="scores-list"></div>
+    <button id="continue-btn" onclick="window.continueGame()">המשך משחק ←</button>
+  </div>
+
+  <div id="end-screen" class="screen">
+    <h2>🏆 המשחק הסתיים!</h2>
+    <div id="winner-emoji"></div>
+    <div id="winner-name"></div>
+    <div id="winner-score"></div>
+    <div style="color:#aaa;font-size:14px">נקודות</div>
+    <div id="end-podium"></div>
+    <button id="reset-btn" onclick="window.resetGame()">🔄 משחק חדש</button>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, remove, update, onValue }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCwWbiewfxEJhmyoIcsSBGL4OTotwR0nZg",
+  authDomain: "ergonomics-game.firebaseapp.com",
+  databaseURL: "https://ergonomics-game-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ergonomics-game",
+  storageBucket: "ergonomics-game.firebasestorage.app",
+  messagingSenderId: "333967140918",
+  appId: "1:333967140918:web:e37c2f079ee5205c94d097"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const SESSION = 'game_' + Math.random().toString(36).slice(2,7);
+const B = 'https://raw.githubusercontent.com/hbconsulting00-sketch/ergonomics-game/main/ergonomics-game-pic/';
+
+const QUESTIONS = [
+  {cat:'⚖️ עמוד השדרה',pts:100,type:'tf',text:'הרחקת המשא מהגוף מגדילה את העומס על עמוד השדרה',opts:['✅ אמת','❌ שקר'],correct:0,img:B+'q1.png',expl:'הרחקת הפריט מהטבור מגדילה את המומנט המופעל על עמוד השדרה התחתון ב-50%'},
+  {cat:'⚖️ עמוד השדרה',pts:200,type:'mc',text:'מה גורם ל"חוב" בעמוד השדרה להצטבר?',opts:['פגיעות גדולות חד-פעמיות בלבד','עומס קטן חוזר לאורך זמן','עבודה בשעות הלילה','נעליים לא מתאימות'],correct:1,img:B+'q2.png',expl:'פגיעות גב לא תמיד מרגישות מיידית — הן תוצאה של טעויות קטנות שמצטברות כמו הורדות בכרטיס אשראי'},
+  {cat:'⚖️ עמוד השדרה',pts:300,type:'mc',text:'מה הסכנה הייחודית של פיתול (Twisting) הגב בזמן נשיאת משא?',opts:['מונע ראייה לצדדים','יוצר עומס קריטי על חוליות הגב','גורם לכאב מיידי בשכמות','מסוכן רק במשאות כבדים'],correct:1,img:B+'q3.png',expl:'פיתול בזמן משא = הגורם המרכזי לפריצת דיסק — מרכז עומס קריטי על חוליות ספציפיות'},
+  {cat:'⚖️ עמוד השדרה',pts:400,type:'mc',text:'מה הגבול המומלץ להרמה ידנית לפי התקן הישראלי בתנאים אופטימליים?',opts:['25 ק"ג','20 ק"ג','15 ק"ג','10 ק"ג'],correct:2,img:B+'q4.png',expl:'ת"י 11228: גבול 15 ק"ג לאדם אחד בתנאים אופטימליים — מעל זה נדרשת עזרה'},
+  {cat:'🏋️ טכניקת הרמה',pts:100,type:'tf',text:'בהרמה בטוחה, שרירי הרגליים — לא הגב — הם המנוע הראשי',opts:['✅ אמת','❌ שקר'],correct:0,img:B+'q5.png',expl:'שרירי הרגליים חזקים ומתאימים להרמה; גב ישר לאורך כל התנועה מגן על החוליות'},
+  {cat:'🏋️ טכניקת הרמה',pts:200,type:'mc',text:'מה לעשות אם משא גדול מסתיר את שדה הראייה?',opts:['להמשיך בזהירות עם ראש מוטה','לפצל למטענים קטנים יותר או להשתמש בעגלה','ללכת לאחור','לבקש מאחרים לפנות את הדרך'],correct:1,img:B+'q6.png',expl:'לעולם אין לשאת ציוד המסתיר ראייה — פיצול או עגלה הם הפתרונות הבטוחים'},
+  {cat:'🏋️ טכניקת הרמה',pts:300,type:'mc',text:'מה תפקיד ה"מוביל" בהרמה משותפת (Team Lift)?',opts:['החזק ביותר קובע את הקצב','נותן פקודות "1,2,3 מרימים" לתנועה מסונכרנת','כל אחד מרים בקצב שלו','המנהל מאשר ומתאם'],correct:1,img:B+'q7.png',expl:'"מוביל" אחד מסנכרן את התנועה — מונע עומס א-סימטרי ופציעות'},
+  {cat:'🏋️ טכניקת הרמה',pts:400,type:'mc',text:'אילו 4 עקרונות מאפיינים הרמה בטוחה?',opts:['הרמה מרגליים, קרבה למשא, עמוד תמך, תנועה חלקה','כפיפת גב, ידיים ישרות, קרבה למשא, הרמה מהירה','כפיפת ברכיים, גב עגול, ידיים נעולות, מהר','עמידה צמודה, גב ישר, ידיים בגובה המותניים'],correct:0,img:B+'q8.png',expl:'4 עקרונות: הרמה מרגליים, קרבה למשא, גב ניטרלי, תנועה חלקה ללא הפסקות פתאומיות'},
+  {cat:'🛠️ כלים וסביבה',pts:100,type:'tf',text:'עדיף תמיד לדחוף עגלה מאשר למשוך אותה',opts:['✅ אמת','❌ שקר'],correct:0,img:B+'q9.png',expl:'דחיפה מנצלת מסת כל הגוף; משיכה מגבר עומס רק על הכתפיים והגב'},
+  {cat:'🛠️ כלים וסביבה',pts:200,type:'mc',text:'מה היתרון המרכזי של סופג זעזועים (Anti-Fatigue Mat)?',opts:['מונע החלקה','הקלה עצומה על הגב והרגליים בעמידה ממושכת','זול וקל לניקוי','מתאים לכל סוגי הנעליים'],correct:1,img:B+'q10.png',expl:'סופג זעזועים מפחית עייפות פיזית בעמידה ממושכת — אך יש סכנת היתקלות אם לא מותקן נכון'},
+  {cat:'🛠️ כלים וסביבה',pts:300,type:'mc',text:'מהו "אזור הזהב" במחסן?',opts:['האזור הקרוב לשער הכניסה','גובה בין ברכיים לכתפיים — גובה אחסון אופטימלי','הרצפה — הכי נגיש','המדף העליון — הכי בטוח מגנבה'],correct:1,img:B+'q11.png',expl:'אזור הזהב = גובה בין ברכיים לכתפיים. פריטים כבדים רק שם — לא על הרצפה ולא מעל הראש'},
+  {cat:'🛠️ כלים וסביבה',pts:400,type:'mc',text:'מה הפתרון האולטימטיבי לעומס פיזי בסביבת לוגיסטיקה?',opts:['הכשרה אינטנסיבית ותדירה של העובדים','שיפור ציוד מגן אישי','אוטומציה: מערכות Goods-to-Person שהסחורה מגיעה לאדם','הגבלת שעות עבודה'],correct:2,img:B+'q12.png',expl:'מערכות Goods-to-Person מבטלות כליל את הצורך להגיע לאזור הזהב — הפתרון האולטימטיבי'},
+  {cat:'🔄 שגרה ומניעה',pts:100,type:'tf',text:'לפני כל הרמה במחסן, חובה לתכנן את נתיב ההליכה מראש',opts:['✅ אמת','❌ שקר'],correct:0,img:B+'q13.png',expl:'סריקת הנתיב, בחינת היעד ומרחב התמרון — 3 הצעדים לפני כל הרמה בטוחה'},
+  {cat:'🔄 שגרה ומניעה',pts:200,type:'mc',text:'עקרון 20-20-20 נועד למנוע:',opts:['כאבי גב מעמידה ממושכת','פציעות ידיים ומפרקים','עייפות שרירית עקב הרמות','עייפות עיניים ועמידה ממושכת מול מסך'],correct:3,img:B+'q14.png',expl:'כל 20 דקות מסך → הסתכל 20 רגל (6 מטרים) → 20 שניות. מונע עייפות שרירי העין'},
+  {cat:'🔄 שגרה ומניעה',pts:300,type:'mc',text:'למה אסור להתעלם מכאב?',opts:['כי עלול להדביק עובדים אחרים','כי הגוף מאותת על תקלה — אל תתנו ל"השתק"','כי מצביע על ציוד לא תקין','כי תמיד אות לפגיעה חמורה'],correct:1,img:B+'q15.png',expl:'כאב = מנגנון אזהרה של הגוף. התעלמות מובילה לנזק מצטבר חמור'},
+  {cat:'🔄 שגרה ומניעה',pts:400,type:'mc',text:'מה ההבדל בין מתיחות דינמיות לסטטיות?',opts:['דינמיות מסוכנות יותר לשרירים','דינמיות בתחילה (הכנה) — סטטיות בסיום (שחרור)','סטטיות בתחילה ודינמיות בסיום','אין הבדל מעשי — שניהן שוות'],correct:1,img:B+'q16.png',expl:'דינמיות 5-10 דקות בתחילה — מכינות שרירים; סטטיות 20-30 שניות בסיום — מחזירות לאורך טבעי'},
+];
+
+const CATS = ['⚖️ עמוד השדרה','🏋️ טכניקת הרמה','🛠️ כלים וסביבה','🔄 שגרה ומניעה'];
+const CAT_COLORS = ['#FF6B00','#9333EA','#00CC6A','#3B82F6'];
+
+let players={}, answers={}, currentQ=null, doneCount=0;
+let timerInt=null, timeLeft=30, spinning=false, wheelAngle=0;
+let boardUsed=new Set(), currentCat=null;
+
+const PLAYER_URL = location.href.replace('index.html','').replace(/\/$/,'') + '/player.html?s=' + SESSION;
+
+function initLobby(){
+  document.getElementById('player-url').textContent = PLAYER_URL;
+  new QRCode(document.getElementById('qr-code'),{text:PLAYER_URL,width:160,height:160,colorDark:'#000',colorLight:'#fff'});
+  onValue(ref(db,`${SESSION}/players`),snap=>{
+    players = snap.val()||{};
+    const list = document.getElementById('players-list');
+    list.innerHTML='';
+    Object.values(players).forEach(p=>{
+      const chip=document.createElement('div');
+      chip.className='player-chip';
+      chip.textContent=p.emoji+' '+p.name;
+      list.appendChild(chip);
+    });
+    document.getElementById('player-count').textContent=Object.keys(players).length+' שחקנים מחוברים';
+    updateStatusBar();
+  });
+  onValue(ref(db,`${SESSION}/answers`),snap=>{
+    answers=snap.val()||{};
+    updateAnswerCount();
+  });
+}
+
+function startGame(){
+  set(ref(db,`${SESSION}/gameState`),'wheel');
+  buildBoard();
+  showScreen('wheel-screen');
+  document.getElementById('status-bar').classList.add('show');
+  updateStatusBar();
+}
+
+function buildBoard(){
+  const board=document.getElementById('board');
+  board.innerHTML='';
+  CATS.forEach(cat=>{
+    const h=document.createElement('div');
+    h.className='board-cat';
+    h.textContent=cat;
+    board.appendChild(h);
+  });
+  [100,200,300,400].forEach(pts=>{
+    CATS.forEach(cat=>{
+      const cell=document.createElement('div');
+      cell.className='board-cell';
+      cell.textContent=pts;
+      const key=cat+'_'+pts;
+      if(boardUsed.has(key)){
+        cell.classList.add('used');
+        cell.textContent='✓';
+      } else {
+        cell.onclick=()=>window.pickQuestion(cat,pts);
+      }
+      board.appendChild(cell);
+    });
+  });
+}
+
+function spinWheel(){
+  if(spinning) return;
+  spinning=true;
+  document.getElementById('spin-btn').disabled=true;
+  document.getElementById('wheel-result').textContent='';
+  const extra=Math.random()*360+720*3;
+  const duration=3000;
+  const start=performance.now();
+  const startAngle=wheelAngle;
+  function animate(now){
+    const t=Math.min((now-start)/duration,1);
+    const ease=1-Math.pow(1-t,3);
+    wheelAngle=startAngle+extra*ease;
+    drawWheel(wheelAngle);
+    if(t<1){requestAnimationFrame(animate);}
+    else{
+      spinning=false;
+      document.getElementById('spin-btn').disabled=false;
+      const norm=((360-(wheelAngle%360))%360);
+      const segSize=360/CATS.length;
+      const idx=Math.floor(norm/segSize)%CATS.length;
+      currentCat=CATS[idx];
+      document.getElementById('wheel-result').textContent='🎯 '+currentCat;
+      setTimeout(()=>highlightCatOnBoard(currentCat),800);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function highlightCatOnBoard(cat){
+  document.querySelectorAll('.board-cell').forEach(c=>c.classList.remove('active'));
+  const catIdx=CATS.indexOf(cat);
+  const cells=document.querySelectorAll('.board-cell');
+  [0,1,2,3].forEach(row=>{
+    const cell=cells[row*4+catIdx];
+    if(cell&&!cell.classList.contains('used')) cell.classList.add('active');
+  });
+}
+
+function pickQuestion(cat,pts){
+  const q=QUESTIONS.find(q=>q.cat===cat&&q.pts===pts);
+  if(!q) return;
+  currentQ=q;
+  boardUsed.add(cat+'_'+pts);
+  doneCount++;
+  set(ref(db,`${SESSION}/answers`),null);
+  answers={};
+  const qId='q_'+Date.now();
+  set(ref(db,`${SESSION}/currentQ`),{...q,qId,img:q.img||''});
+  set(ref(db,`${SESSION}/correct`),null);
+  set(ref(db,`${SESSION}/gameState`),'question');
+  showScreen('q-screen');
+  renderQuestion(q);
+  updateStatusBar();
+  document.getElementById('btn-back-board').style.display='inline-block';
+}
+
+function renderQuestion(q){
+  document.getElementById('q-cat').textContent=q.cat;
+  document.getElementById('q-pts').textContent=q.pts+" נק'";
+  document.getElementById('q-progress').textContent='שאלה '+doneCount+' מתוך 16';
+  document.getElementById('q-text').textContent=q.text;
+  const img=document.getElementById('q-img');
+  if(q.img){img.src=q.img;img.style.display='block';}
+  else img.style.display='none';
+  document.getElementById('expl-box').style.display='none';
+  document.getElementById('next-btn').style.display='none';
+  document.getElementById('reveal-btn').style.display='block';
+  document.getElementById('reveal-btn').disabled=false;
+  document.getElementById('answer-count').textContent='0 שחקנים ענו';
+  const opts=document.getElementById('opts');
+  opts.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='opt-btn';
+    btn.innerHTML=opt+'<span class="opt-votes"></span>';
+    btn.dataset.idx=i;
+    opts.appendChild(btn);
+  });
+  startTimer();
+}
+
+function updateAnswerCount(){
+  if(!currentQ) return;
+  const n=Object.keys(answers).length;
+  const total=Object.keys(players).length;
+  document.getElementById('answer-count').textContent=n+' מתוך '+total+' ענו';
+}
+
+function startTimer(){
+  clearInterval(timerInt);
+  timeLeft=30;
+  const el=document.getElementById('q-timer');
+  const fill=document.getElementById('timer-fill');
+  el.textContent=timeLeft; el.classList.remove('urgent');
+  fill.style.width='100%';
+  timerInt=setInterval(()=>{
+    timeLeft--;
+    el.textContent=timeLeft;
+    fill.style.width=(timeLeft/30*100)+'%';
+    if(timeLeft<=5) el.classList.add('urgent');
+    if(timeLeft<=0){clearInterval(timerInt);el.textContent='⏰';}
+  },1000);
+}
+
+function revealAnswer(){
+  clearInterval(timerInt);
+  const q=currentQ;
+  set(ref(db,`${SESSION}/correct`),q.correct);
+  set(ref(db,`${SESSION}/gameState`),'reveal');
+  const updates={};
+  Object.entries(answers).forEach(([id,data])=>{
+    if(data.answer===q.correct){
+      const elapsed=data.elapsed||20000;
+      const bonus=Math.floor(Math.max(0,(1-elapsed/30000))*q.pts*0.5);
+      updates[`${SESSION}/players/${id}/score`]=(players[id]?.score||0)+q.pts+bonus;
+    }
+  });
+  if(Object.keys(updates).length) update(ref(db,'/'),updates);
+  document.querySelectorAll('.opt-btn').forEach((btn,i)=>{
+    btn.disabled=true;
+    if(i===q.correct) btn.classList.add('correct');
+    const count=Object.values(answers).filter(a=>a.answer===i).length;
+    btn.querySelector('.opt-votes').textContent=count>0?'('+count+')':'';
+  });
+  document.getElementById('expl-box').style.display='block';
+  document.getElementById('expl-box').textContent=q.expl;
+  document.getElementById('reveal-btn').style.display='none';
+  document.getElementById('next-btn').style.display='block';
+  document.getElementById('next-btn').textContent=doneCount>=16?'🏆 סיים משחק':'← שאלה הבאה';
+}
+
+function nextQuestion(){
+  document.getElementById('btn-back-board').style.display='none';
+  if(doneCount>=16){ endGame(); return; }
+  if(doneCount%4===0){ showScores(); return; }
+  buildBoard();
+  showScreen('wheel-screen');
+  set(ref(db,`${SESSION}/gameState`),'wheel');
+  document.getElementById('wheel-result').textContent='';
+}
+
+function showScores(){
+  const sorted=Object.values(players).sort((a,b)=>(b.score||0)-(a.score||0));
+  const list=document.getElementById('scores-list');
+  list.innerHTML='';
+  sorted.forEach((p,i)=>{
+    const row=document.createElement('div');
+    row.className='score-row';
+    const medals=['🥇','🥈','🥉'];
+    row.innerHTML=`<div class="score-rank">${medals[i]||i+1}</div><div class="score-name">${p.emoji} ${p.name}</div><div class="score-pts">${p.score||0}</div>`;
+    list.appendChild(row);
+  });
+  showScreen('scores-screen');
+}
+
+function continueGame(){
+  buildBoard();
+  showScreen('wheel-screen');
+  set(ref(db,`${SESSION}/gameState`),'wheel');
+}
+
+function backToBoard(){
+  clearInterval(timerInt);
+  document.getElementById('btn-back-board').style.display='none';
+  buildBoard();
+  showScreen('wheel-screen');
+  set(ref(db,`${SESSION}/gameState`),'wheel');
+}
+
+function endEarly(){
+  if(!confirm('לסיים את המשחק עכשיו?')) return;
+  endGame();
+}
+
+function endGame(){
+  clearInterval(timerInt);
+  set(ref(db,`${SESSION}/gameState`),'end');
+  const sorted=Object.values(players).sort((a,b)=>(b.score||0)-(a.score||0));
+  if(sorted.length){
+    document.getElementById('winner-emoji').textContent=sorted[0].emoji||'🏆';
+    document.getElementById('winner-name').textContent=sorted[0].name;
+    document.getElementById('winner-score').textContent=sorted[0].score||0;
+  }
+  const podium=document.getElementById('end-podium');
+  podium.innerHTML='';
+  sorted.slice(0,5).forEach((p,i)=>{
+    const row=document.createElement('div');
+    row.className='score-row';
+    row.innerHTML=`<div class="score-rank">${i+1}</div><div class="score-name">${p.emoji} ${p.name}</div><div class="score-pts">${p.score||0}</div>`;
+    podium.appendChild(row);
+  });
+  document.getElementById('status-bar').classList.remove('show');
+  showScreen('end-screen');
+}
+
+function resetGame(){
+  if(!confirm('לאפס את המשחק ולמחוק את כל הנתונים?')) return;
+  clearInterval(timerInt);
+  remove(ref(db,SESSION));
+  boardUsed=new Set(); doneCount=0; players={}; answers={}; currentQ=null;
+  document.getElementById('status-bar').classList.remove('show');
+  document.getElementById('players-list').innerHTML='';
+  document.getElementById('player-count').textContent='0 שחקנים מחוברים';
+  showScreen('lobby');
+}
+
+function updateStatusBar(){
+  const n=Object.keys(players).length;
+  document.getElementById('status-info').textContent=`שחקנים: ${n} | שאלה ${doneCount}/16`;
+  const sorted=Object.values(players).sort((a,b)=>(b.score||0)-(a.score||0));
+  if(sorted.length) document.getElementById('status-lead').textContent=`🥇 ${sorted[0].emoji||''} ${sorted[0].name} — ${sorted[0].score||0}`;
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function drawWheel(angle){
+  const canvas=document.getElementById('wheel-canvas');
+  const ctx=canvas.getContext('2d');
+  const cx=210,cy=210,r=200;
+  const seg=Math.PI*2/CATS.length;
+  ctx.clearRect(0,0,420,420);
+  CATS.forEach((cat,i)=>{
+    const start=angle*Math.PI/180+i*seg;
+    const end=start+seg;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,end);
+    ctx.closePath();
+    ctx.fillStyle=CAT_COLORS[i];
+    ctx.fill();
+    ctx.strokeStyle='#fff';
+    ctx.lineWidth=2;
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(start+seg/2);
+    ctx.textAlign='right';
+    ctx.fillStyle='#fff';
+    ctx.font='bold 16px Heebo, sans-serif';
+    ctx.fillText(cat,r-16,6);
+    ctx.restore();
+  });
+  ctx.beginPath();
+  ctx.arc(cx,cy,28,0,Math.PI*2);
+  ctx.fillStyle='#0F0A1A';
+  ctx.fill();
+  ctx.strokeStyle='#fff';
+  ctx.lineWidth=3;
+  ctx.stroke();
+}
+
+drawWheel(0);
+initLobby();
+
+window.startGame=startGame;
+window.resetGame=resetGame;
+window.spinWheel=spinWheel;
+window.revealAnswer=revealAnswer;
+window.nextQuestion=nextQuestion;
+window.showScores=showScores;
+window.continueGame=continueGame;
+window.pickQuestion=pickQuestion;
+window.endEarly=endEarly;
+window.backToBoard=backToBoard;
+</script>
+</body>
+</html>
